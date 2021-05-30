@@ -17,9 +17,9 @@ docker build --pull --rm -f "Github/cctv_yolo_opencvdnn_telegram/Dockerfile" -t 
 - Run Image, 
 ```
 docker run --rm -d --name cctv_yolo_telegram_bot  -p 8080:8080/tcp \
--e BOT_TOKEN='1786311895:AAFZtgMqbeP9Aysy_gD-LD0nCwrHk7qKbvc' \
--e CHAT_ID='-590868765' \
--e MJPEG_URL="https://192.168.0.103:8081/index.jpg" \
+-e BOT_TOKEN='TELEGRAM_BOT_TOKEN' \
+-e CHAT_ID='TELEGRAM_CHAT_IF' \
+-e MJPEG_URL="MJPEG_URL_CAMERA" \
 -e CAMERA_NAME="CAM-001" \
 -e "TZ=Asia/Jakarta" \
 cctv_yolo_telegram_bot:latest

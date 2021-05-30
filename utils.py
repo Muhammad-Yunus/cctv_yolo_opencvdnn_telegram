@@ -67,5 +67,5 @@ class Utils():
                 frame = self.draw_ped(frame, label, x, y, x+w, y+h, color=(255,127,0), text_color=(255,255,255))
         
         if len(labels_log) > 0 :
-            labels_log = [{item : labels_log.count(item)} for item in set(labels_log)]
+            labels_log = [{"name" : item, "count" : labels_log.count(item)} for item in set(labels_log)]
         return len(labels_log) > 0, labels_log, frame

@@ -123,7 +123,7 @@ class CameraStream():
                 if HasObject and (time.time() - self.lastFaceSent) > 5:
                     self.lastFaceSent = time.time()
                     TimeStr = datetime.datetime.now().strftime("%H:%M:%S")
-                    object_str =  " ".join(["%d %s," % (i.values()[0], i.keys()[0]) for i in detected_objects])
+                    object_str =  " ".join(["%d %s," % (i.get('count'), i.get('name')) for i in detected_objects])
                     msg = "Detected %s in image at %s" % (object_str, TimeStr)
                     imgPath = "image/photo_%s.jpg" % TimeStr
                     cv2.imwrite(imgPath, img)

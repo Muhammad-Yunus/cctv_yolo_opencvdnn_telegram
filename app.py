@@ -59,7 +59,7 @@ class Detector():
         t, _ = self.net.getPerfProfile()
         print('inference time: %.2f s' % (t / cv2.getTickFrequency()))
 
-        return self.util_lib.postprocess(self.output, frame, self.classes, self.include_objects)
+        return self.util_lib.postprocess(output, frame, self.classes, self.include_objects)
 
 class CustomVideoCapture():
     def __init__(self, name):
@@ -118,7 +118,7 @@ class CameraStream():
         while self.cap.isOpened():
             ret, img = self.cap.read()
             try :
-                HasObject, detected_objects, img = self.detector.Detect(img)
+                HasObject, detected_objects, img = self.detector.detect(img)
                 
                 if HasObject and (time.time() - self.lastFaceSent) > 5:
                     self.lastFaceSent = time.time()

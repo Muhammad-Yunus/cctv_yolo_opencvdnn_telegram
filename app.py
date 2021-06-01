@@ -115,7 +115,7 @@ class CameraStream():
         self.lastFaceSent = 0
 
     def run(self): 
-        while self.cap.isOpened():
+        while True:
             ret, img = self.cap.read()
             try :
                 HasObject, detected_objects, img = self.detector.detect(img)
@@ -151,3 +151,4 @@ if __name__ == '__main__':
     cap_source = os.environ['MJPEG_URL']
     stream = CameraStream(cap_source)
     stream.run()
+    print("Camera Closed!")

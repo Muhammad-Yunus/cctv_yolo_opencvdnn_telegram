@@ -106,6 +106,9 @@ class CustomVideoCapture():
     def isOpened(self):
         return self.cap.isOpened()
 
+    def release(self):
+        return self.cap.release()
+
 class CameraStream():
     def __init__(self, cap_source):
         self.cap_source = cap_source
@@ -115,7 +118,7 @@ class CameraStream():
         self.lastFaceSent = 0
 
     def run(self): 
-        while True:
+        while self.cap.isOpened() :
             ret, img = self.cap.read()
             try :
                 HasObject, detected_objects, img = self.detector.detect(img)
@@ -145,10 +148,19 @@ class CameraStream():
 
             except Exception as e:
                 print("[ERROR] ", e)
+        else : 
+            self.cap.release()
+            print("Camera Closed!")
+            self.cam_bot.SendMessage("[INFO] heart beat msg, camera %s status : CAMERA CLOSED " % (os.environ['CAMERA_NAME']))
 
 if __name__ == '__main__':
-    print("Object Detection service starting!")
+    print("Object Detection service starting!\n")
     cap_source = os.environ['MJPEG_URL']
-    stream = CameraStream(cap_source)
-    stream.run()
-    print("Camera Closed!")
+    i = 0
+    while i < 7 :
+        stream = CameraStream(cap_source)
+        stream.run()
+        time.sleep(5)
+        
+        print("\n\nRetry %d to open camera in %s \n\n" % (i, datetime.datetime.now().strftime("%H:%M:%S")))
+        i += 1

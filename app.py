@@ -1,6 +1,7 @@
 import telegram
 import datetime
 import time
+import math
 import cv2
 import os
 import queue 
@@ -64,7 +65,7 @@ class Detector():
 class CustomVideoCapture():
     def __init__(self, name):
         self.name = name
-        self.cap = cv2.VideoCapture(self.name)
+        self.cap = cv2.VideoCapture(self.name )
         self.q = queue.Queue()
         t = threading.Thread(target=self._reader)
         t.daemon = True
@@ -72,29 +73,33 @@ class CustomVideoCapture():
 
     def _reader(self):
         while self.cap.isOpened() :
-            ret, frame = self.cap.read()
-            if not ret :
-                self.cap.release()
-                print("[INFO] Invalid image!") 
-                
-                print("[INFO] Restart camera in 2 seconds!")
-                time.sleep(2)
-                
-                print("[INFO] Initialize new camera!") 
-                self.cap = None
-                while self.cap == None :
-                    try :
-                        self.cap = cv2.VideoCapture(self.name)
-                    except Exception as e:
-                        print("[ERROR] 'error when initialize camera,' ", e)
-                        time.sleep(1)
-                continue
-            if not self.q.empty():
-                try:
-                    self.q.get_nowait() 
-                except queue.Empty:
-                    pass
-            self.q.put(frame)
+            try :
+                ret, frame = self.cap.read()
+                if not ret :
+                    self.cap.release()
+                    print("[INFO] Invalid image!") 
+                    
+                    print("[INFO] Restart camera in 2 seconds!")
+                    time.sleep(2)
+                    
+                    print("[INFO] Initialize new camera!") 
+                    self.cap = None
+                    while self.cap == None :
+                        try :
+                            self.cap = cv2.VideoCapture(self.name )
+                        except Exception as e:
+                            print("[ERROR] 'error when initialize camera,' ", e)
+                            time.sleep(1)
+                    continue
+                if not self.q.empty():
+                    try:
+                        self.q.get_nowait() 
+                    except queue.Empty:
+                        pass
+                self.q.put(frame)
+            except Exception as e:
+                print("[ERROR] 'error when read frame from camera,' ", e)
+                time.sleep(1)
 
     def read(self):
         try :
@@ -116,6 +121,14 @@ class CameraStream():
         self.cam_bot = HomeCamBot()
         self.detector = Detector()
         self.lastFaceSent = 0
+        self.lastDetectedPoint = [0, 0]
+        self.minDetectedDist = 50 # less than this distance will be classified as same object and no longer be sent again to telegram
+
+    def checkAboveDetectedDist(self, pt):
+        aboveDetectedDist = math.dist(pt, self.lastDetectedPoint) >= self.minDetectedDist
+        if (aboveDetectedDist) :
+           self.lastDetectedPoint = pt 
+        return aboveDetectedDist
 
     def run(self): 
         while self.cap.isOpened() :
@@ -124,17 +137,20 @@ class CameraStream():
                 HasObject, detected_objects, img = self.detector.detect(img)
                 
                 if HasObject and (time.time() - self.lastFaceSent) > 5:
-                    self.lastFaceSent = time.time()
-                    TimeStr = datetime.datetime.now().strftime("%H:%M:%S")
-                    object_str =  " ".join(["%d %s," % (i.get('count'), i.get('name')) for i in detected_objects])
-                    msg = "Detected %s in image at %s" % (object_str, TimeStr)
-                    imgPath = "image/photo_%s.jpg" % TimeStr
-                    cv2.imwrite(imgPath, img)
-                    try :
-                        message = self.cam_bot.SendPhoto(open(imgPath, 'rb'), msg)
-                        print("[INFO] Detecting object, send image to Telegram with message :\n%s\n" % message)
-                    except Exception as e:
-                        print("[ERROR] 'error when send to telegram,' ", e)
+                    if (self.checkAboveDetectedDist(detected_objects[0].get('pt'))) :
+                        self.lastFaceSent = time.time()
+                        TimeStr = datetime.datetime.now().strftime("%H:%M:%S")
+                        object_str =  " ".join(["%d %s," % (i.get('count'), i.get('name')) for i in detected_objects])
+                        msg = "Detected %s in image at %s" % (object_str, TimeStr)
+                        imgPath = "image/photo.jpg"
+                        cv2.imwrite(imgPath, img)
+                        try :
+                            message = self.cam_bot.SendPhoto(open(imgPath, 'rb'), msg)
+                            print("[INFO] Detecting object, send image to Telegram with message :\n%s\n" % message)
+                        except Exception as e:
+                            print("[ERROR] 'error when send to telegram,' ", e)
+                    else : 
+                       print("[INFO] 'detected object with no movement, image will not sent to telegram' ") 
 
                 try : 
                     CurrTime = datetime.datetime.now()

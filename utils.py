@@ -53,6 +53,8 @@ class Utils():
 
         indices = cv2.dnn.NMSBoxes(boxes, confidences, confThreshold, nmsThreshold)
         labels_log = []
+        coords_log = []
+        objs_log = []
         for i in indices:
             i = i[0]
             box = boxes[i]
@@ -64,8 +66,9 @@ class Utils():
             if classes[classIds[i]] in include_objects :
                 label = '%s: %.1f%%' % (classes[classIds[i]], (confidences[i]*100))
                 labels_log.append(label)
+                coords_log.append([x, y])
                 frame = self.draw_ped(frame, label, x, y, x+w, y+h, color=(255,127,0), text_color=(255,255,255))
         
         if len(labels_log) > 0 :
-            labels_log = [{"name" : item, "count" : labels_log.count(item)} for item in set(labels_log)]
-        return len(labels_log) > 0, labels_log, frame
+            objs_log = [{"name" : item, "count" : labels_log.count(item), "pt" : coords_log[i]} for i, item in enumerate(set(labels_log))]
+        return len(objs_log) > 0, objs_log, frame

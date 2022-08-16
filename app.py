@@ -87,7 +87,7 @@ class CustomVideoCapture():
                     while self.cap == None :
                         try :
                             self.cap = cv2.VideoCapture(self.name )
-                        except Exception as e:
+                        except cv2.error as e:
                             print("[ERROR] 'error when initialize camera,' ", e)
                             time.sleep(1)
                     continue
@@ -97,7 +97,7 @@ class CustomVideoCapture():
                     except queue.Empty:
                         pass
                 self.q.put(frame)
-            except Exception as e:
+            except cv2.error as e:
                 print("[ERROR] 'error when read frame from camera,' ", e)
                 time.sleep(1)
 

@@ -79,15 +79,19 @@ class CustomVideoCapture():
                     self.cap.release()
                     print("[INFO] Invalid image!") 
                     
-                    print("[INFO] Restart camera in 2 seconds!")
-                    time.sleep(2)
+                    print("[INFO] Restart camera in 30 seconds!")
+                    time.sleep(30)
                     
                     print("[INFO] Initialize new camera!") 
                     self.cap = None
                     while self.cap == None :
                         try :
                             self.cap = cv2.VideoCapture(self.name )
+                            print("[INFO] New camera started!") 
                         except cv2.error as e:
+                            print("[ERROR] ' (cv error) error when initialize camera,' ", e)
+                            time.sleep(1)
+                        except Exception as e:
                             print("[ERROR] 'error when initialize camera,' ", e)
                             time.sleep(1)
                     continue
@@ -98,6 +102,9 @@ class CustomVideoCapture():
                         pass
                 self.q.put(frame)
             except cv2.error as e:
+                print("[ERROR] ' (cv error) error when read frame from camera,' ", e)
+                time.sleep(1)
+            except Exception as e:
                 print("[ERROR] 'error when read frame from camera,' ", e)
                 time.sleep(1)
 
@@ -176,7 +183,7 @@ if __name__ == '__main__':
     while i < 7 :
         stream = CameraStream(cap_source)
         stream.run()
-        time.sleep(5)
+        time.sleep(30)
         
-        print("\n\nRetry %d to open camera in %s \n\n" % (i, datetime.datetime.now().strftime("%H:%M:%S")))
+        print("\n\nRetry (%d) to open camera in %s \n\n" % (i, datetime.datetime.now().strftime("%H:%M:%S")))
         i += 1

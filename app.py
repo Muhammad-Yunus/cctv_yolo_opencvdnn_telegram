@@ -4,11 +4,14 @@ import time
 import math
 import cv2
 import os
+import re
 import queue 
 import threading
 import numpy as np
+import socket
 
 from utils import Utils
+
 
 class HomeCamBot():
     def __init__(self):
@@ -66,10 +69,23 @@ class CustomVideoCapture():
     def __init__(self, name):
         self.name = name
         self.cap = cv2.VideoCapture(self.name )
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.settimeout(2)
+
         self.q = queue.Queue()
         t = threading.Thread(target=self._reader)
         t.daemon = True
         t.start()
+
+    def urlParse(self, uri):
+        p = '(?:http.*://)?(?P<host>[^:/ ]+).?(?P<port>[0-9]*).*'
+        m = re.search(p, uri)
+        return m.group('host'), int(m.group('port'))
+
+    def checkMjpeg(self):
+        host, port = self.urlParse(self.name)
+        result = self.sock.connect_ex((host, port))
+        return result == 0 # true is open, otherwise is closed
 
     def _reader(self):
         while self.cap.isOpened() :
@@ -86,6 +102,8 @@ class CustomVideoCapture():
                     self.cap = None
                     while self.cap == None :
                         try :
+                            if not self.checkMjpeg() :
+                                raise Exception("MJPEG source is not available : ", self.name)
                             self.cap = cv2.VideoCapture(self.name )
                             print("[INFO] New camera started!") 
                         except cv2.error as e:

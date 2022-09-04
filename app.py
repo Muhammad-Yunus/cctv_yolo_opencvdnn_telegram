@@ -70,7 +70,7 @@ class CustomVideoCapture():
         self.name = name
         self.cap = cv2.VideoCapture(self.name )
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.settimeout(2)
+        self.sock.settimeout(5)
 
         self.q = queue.Queue()
         t = threading.Thread(target=self._reader)
@@ -100,9 +100,12 @@ class CustomVideoCapture():
                     
                     print("[INFO] Initialize new camera!") 
                     self.cap = None
+                    retry_failed_counter = 0
                     while self.cap == None :
                         try :
                             if not self.checkMjpeg() :
+                                time.sleep(30)
+                                retry_failed_counter += 1
                                 raise Exception("MJPEG source is not available : ", self.name)
                             self.cap = cv2.VideoCapture(self.name )
                             print("[INFO] New camera started!") 
@@ -112,6 +115,8 @@ class CustomVideoCapture():
                         except Exception as e:
                             print("[ERROR] 'error when initialize camera,' ", e)
                             time.sleep(1)
+                            if retry_failed_counter > 3 :
+                                raise Exception("[ERROR] 'retry_failed_counter' exceeded, throw an exeption and stop retrying.")
                     continue
                 if not self.q.empty():
                     try:
@@ -198,10 +203,10 @@ if __name__ == '__main__':
     print("Object Detection service starting!\n")
     cap_source = os.environ['MJPEG_URL']
     i = 0
-    while i < 7 :
+    while i < 3 :
         stream = CameraStream(cap_source)
         stream.run()
-        time.sleep(30)
+        time.sleep(60)
         
-        print("\n\nRetry (%d) to open camera in %s \n\n" % (i, datetime.datetime.now().strftime("%H:%M:%S")))
+        print("\n\n[INFO] Retry (%d) to open camera in %s \n\n" % (i, datetime.datetime.now().strftime("%H:%M:%S")))
         i += 1

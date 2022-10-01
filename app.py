@@ -68,9 +68,12 @@ class Detector():
 class CustomVideoCapture():
     def __init__(self, name):
         self.name = name
-        self.cap = cv2.VideoCapture(self.name )
+        
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.settimeout(5)
+
+        self.cap = None
+        self.initializeVideoCapture()
 
         self.q = queue.Queue()
         t = threading.Thread(target=self._reader)
@@ -87,6 +90,27 @@ class CustomVideoCapture():
         result = self.sock.connect_ex((host, port))
         return result == 0 # true is open, otherwise is closed
 
+    def initializeVideoCapture(self):
+        self.cap = None
+        retry_failed_counter = 0
+        while self.cap == None :
+            try :
+                if not self.checkMjpeg() :
+                    time.sleep(30)
+                    retry_failed_counter += 1
+                    raise Exception("MJPEG source is not available : ", self.name)
+                self.cap = cv2.VideoCapture(self.name )
+                print("[INFO] New camera started!") 
+            except cv2.error as e:
+                print("[ERROR] ' (cv error) error when initialize camera,' ", e)
+                time.sleep(1)
+            except Exception as e:
+                print("[ERROR] 'error when initialize camera,' ", e)
+                time.sleep(1)
+                if retry_failed_counter > 3 :
+                    print("[ERROR] 'retry_failed_counter' exceeded, throw an exeption and stop retrying.")
+                    self.cap = DummyVideoCapture()            
+
     def _reader(self):
         while self.cap.isOpened() :
             try :
@@ -99,25 +123,9 @@ class CustomVideoCapture():
                     time.sleep(30)
                     
                     print("[INFO] Initialize new camera!") 
-                    self.cap = None
-                    retry_failed_counter = 0
-                    while self.cap == None :
-                        try :
-                            if not self.checkMjpeg() :
-                                time.sleep(30)
-                                retry_failed_counter += 1
-                                raise Exception("MJPEG source is not available : ", self.name)
-                            self.cap = cv2.VideoCapture(self.name )
-                            print("[INFO] New camera started!") 
-                        except cv2.error as e:
-                            print("[ERROR] ' (cv error) error when initialize camera,' ", e)
-                            time.sleep(1)
-                        except Exception as e:
-                            print("[ERROR] 'error when initialize camera,' ", e)
-                            time.sleep(1)
-                            if retry_failed_counter > 3 :
-                                raise Exception("[ERROR] 'retry_failed_counter' exceeded, throw an exeption and stop retrying.")
+                    self.initializeVideoCapture()
                     continue
+
                 if not self.q.empty():
                     try:
                         self.q.get_nowait() 
@@ -143,6 +151,10 @@ class CustomVideoCapture():
 
     def release(self):
         return self.cap.release()
+
+class DummyVideoCapture():
+    def isOpened(self):
+        return False
 
 class CameraStream():
     def __init__(self, cap_source):
@@ -200,7 +212,7 @@ class CameraStream():
             self.cam_bot.SendMessage("[INFO] heart beat msg, camera %s status : CAMERA CLOSED " % (os.environ['CAMERA_NAME']))
 
 if __name__ == '__main__':
-    print("Object Detection service starting!\n")
+    print("\n\n---- Object Detection service starting! ----\n\n")
     cap_source = os.environ['MJPEG_URL']
     i = 0
     while i < 3 :
